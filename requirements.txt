@@ -1,0 +1,6 @@
+# Cài torch + torchvision phù hợp hệ điều hành/CUDA theo https://pytorch.org/get-started/locally/
+torch
+torchvision
+Pillow
+numpy
+mediapipe

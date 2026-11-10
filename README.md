@@ -172,4 +172,3 @@ Nguồn và dòng code: xem `SOURCE_MAP.md`. Quy trình ESP32-S3 giai đoạn sa
 - Ảnh giả (ảnh in/ảnh trên màn hình) có thể đánh lừa hệ thống nếu không có kiểm tra sống (*liveness*).
 - Tên `person_01` tránh dùng thông tin cá nhân trong DB.
 - **ESP32-S3 4MB Flash, 2MB PSRAM** không đủ chạy PalmBridge/CompNet nguyên bản. ZIP chỉ là điểm xuất phát đánh giá baseline, không phải firmware sẵn chạy trên board.
-
