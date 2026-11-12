@@ -1,3 +1,35 @@
+# TRAIN NHANH TU THU MUC - KHONG CAN GIAO DIEN
+
+Chi can chep JPG/PNG hoac ZIP ESP32 vao bon thu muc `dataset/esp32_photos/person_01` den `person_04` tren MAY CUA BAN.
+
+Tao cac thu muc (hoac chay `python train_local.py` lan dau de tu tao):
+
+```powershell
+1..4 | ForEach-Object { New-Item -ItemType Directory -Force ("dataset/esp32_photos/person_{0:D2}" -f $_) }
+```
+
+Sau khi chep anh vao:
+
+```powershell
+python train_local.py --epochs 2 --batch-size 4
+```
+
+Neu anh da CAT ROI long ban tay: `python train_local.py --input-format roi --epochs 2`.
+
+Chay train chinh thuc: `python train_local.py --epochs 12 --batch-size 4`.
+
+- Script tao `dataset/esp32_staging` va `dataset/esp32_prepared`, giu nguyen anh goc.
+- Co the bo ZIP 10 anh cua ESP32 vao thu muc tung nguoi ma KHONG can giai nen.
+- Neu chua co `weights/hand_landmarker.task`, che do full-hand se chi TAI MODEL MediaPipe de cat ROI.
+- Can co `weights/best_palmbridge_V1_embedding.pt` tren may.
+- Neu it hon 3 luot chup/nguòi, script chia ngau nhien chi de DEMO va canh bao; khong du tin cay de danh gia do chinh xac.
+- Output: `weights/palmbridge_esp32_finetuned.pt`, `weights/finetune_report.json`, `weights/finetune_history.csv`.
+- Khong commit anh sinh trac va checkpoint len GitHub.
+
+**Khong can chay train_app.py/Streamlit.** Phan duoi la huong dan UI tuy chon cu, khong bat buoc.
+
+---
+
 # PalmLock-AI — Giao diện nạp ảnh & Fine-tune trên VS Code
 
 Bản bổ sung tương thích với dự án: `https://github.com/thanhtuty/BTL_IOT`.
