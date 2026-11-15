@@ -8,6 +8,7 @@ from pathlib import Path
 import torch
 from config import EMBED_DIM, IMAGE_SIZE
 from models.backbone import CustomCompNetBackbone, OfficialCompNetBackbone
+from models.compact import CustomCompactBackbone
 from models.palmbridge import PalmBridgeEncoder
 
 
@@ -74,6 +75,9 @@ def detect_backbone_type(state):
     if any(k.startswith('cb1.') for k in keys):
         return 'official'
     if any(k.startswith(('block1.', 'gabor.')) for k in keys):
+        fc = state.get('embed.1.weight')
+        if fc is not None and tuple(fc.shape) == (EMBED_DIM, 256 * 2 * 2):
+            return 'custom_compact'
         return 'custom'
     raise ValueError('Không nhận diện được loại backbone (official/custom).')
 
@@ -104,7 +108,9 @@ def load_encoder(weights_path, device='cpu'):
             raise ValueError(f'Checkpoint image_size={img}, cần {IMAGE_SIZE}.')
     backbone_state, pb_state = extract_parts(checkpoint)
     kind = detect_backbone_type(backbone_state)
-    backbone = OfficialCompNetBackbone() if kind == 'official' else CustomCompNetBackbone()
+    backbone = (OfficialCompNetBackbone() if kind == 'official' else
+                CustomCompactBackbone() if kind == 'custom_compact' else
+                CustomCompNetBackbone())
     model = PalmBridgeEncoder(backbone)
     try:
         model.backbone.load_state_dict(backbone_state, strict=True)
