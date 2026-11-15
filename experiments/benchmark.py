@@ -8,6 +8,7 @@ import copy
 import csv
 import json
 import time
+import sys
 from pathlib import Path
 
 import numpy as np
@@ -16,6 +17,8 @@ import torch.nn.functional as F
 from PIL import Image
 from torch.utils.data import DataLoader
 from torchvision.datasets import ImageFolder
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from config import ROOT, SUPPORTED_EXTENSIONS, DEFAULT_HAND_LANDMARKER
 from finetune import ArcMarginHead
