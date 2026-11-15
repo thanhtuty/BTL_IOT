@@ -1,0 +1,239 @@
+{
+  "version": 1,
+  "author": "PalmLock-AI",
+  "editor": "wokwi",
+  "parts": [
+    {
+      "type": "board-esp32-devkit-c-v4",
+      "id": "esp",
+      "left": 0,
+      "top": 110,
+      "attrs": {}
+    },
+    {
+      "type": "board-ssd1306",
+      "id": "oled",
+      "left": 280,
+      "top": -60,
+      "attrs": {
+        "i2cAddress": "0x3c"
+      }
+    },
+    {
+      "type": "wokwi-servo",
+      "id": "servo",
+      "left": 310,
+      "top": 215,
+      "attrs": {}
+    },
+    {
+      "type": "wokwi-pushbutton",
+      "id": "next",
+      "left": -230,
+      "top": 85,
+      "attrs": {
+        "label": "NEXT [N]",
+        "color": "blue",
+        "key": "N",
+        "bounce": "0"
+      }
+    },
+    {
+      "type": "wokwi-pushbutton",
+      "id": "scan",
+      "left": -230,
+      "top": 170,
+      "attrs": {
+        "label": "SCAN [S]",
+        "color": "green",
+        "key": "S",
+        "bounce": "0"
+      }
+    },
+    {
+      "type": "wokwi-pushbutton",
+      "id": "test",
+      "left": -230,
+      "top": 255,
+      "attrs": {
+        "label": "TEST 95% [T]",
+        "color": "yellow",
+        "key": "T",
+        "bounce": "0"
+      }
+    },
+    {
+      "type": "wokwi-led",
+      "id": "green",
+      "left": 245,
+      "top": 360,
+      "attrs": {
+        "color": "green"
+      }
+    },
+    {
+      "type": "wokwi-led",
+      "id": "red",
+      "left": 315,
+      "top": 360,
+      "attrs": {
+        "color": "red"
+      }
+    },
+    {
+      "type": "wokwi-resistor",
+      "id": "rg",
+      "left": 246,
+      "top": 420,
+      "attrs": {
+        "value": "220"
+      }
+    },
+    {
+      "type": "wokwi-resistor",
+      "id": "rr",
+      "left": 315,
+      "top": 420,
+      "attrs": {
+        "value": "220"
+      }
+    }
+  ],
+  "connections": [
+    [
+      "esp:TX",
+      "$serialMonitor:RX",
+      "",
+      []
+    ],
+    [
+      "esp:RX",
+      "$serialMonitor:TX",
+      "",
+      []
+    ],
+    [
+      "esp:17",
+      "esp:16",
+      "purple",
+      [
+        "h35",
+        "v-35"
+      ]
+    ],
+    [
+      "next:1.r",
+      "esp:32",
+      "blue",
+      []
+    ],
+    [
+      "next:2.r",
+      "esp:GND.1",
+      "black",
+      []
+    ],
+    [
+      "scan:1.r",
+      "esp:33",
+      "green",
+      []
+    ],
+    [
+      "scan:2.r",
+      "esp:GND.1",
+      "black",
+      []
+    ],
+    [
+      "test:1.r",
+      "esp:25",
+      "orange",
+      []
+    ],
+    [
+      "test:2.r",
+      "esp:GND.1",
+      "black",
+      []
+    ],
+    [
+      "oled:SDA",
+      "esp:21",
+      "blue",
+      []
+    ],
+    [
+      "oled:SCL",
+      "esp:22",
+      "purple",
+      []
+    ],
+    [
+      "oled:VCC",
+      "esp:5V",
+      "red",
+      []
+    ],
+    [
+      "oled:GND",
+      "esp:GND.2",
+      "black",
+      []
+    ],
+    [
+      "servo:PWM",
+      "esp:18",
+      "green",
+      []
+    ],
+    [
+      "servo:V+",
+      "esp:5V",
+      "red",
+      []
+    ],
+    [
+      "servo:GND",
+      "esp:GND.2",
+      "black",
+      []
+    ],
+    [
+      "esp:26",
+      "rg:1",
+      "green",
+      []
+    ],
+    [
+      "rg:2",
+      "green:A",
+      "green",
+      []
+    ],
+    [
+      "green:C",
+      "esp:GND.2",
+      "black",
+      []
+    ],
+    [
+      "esp:27",
+      "rr:1",
+      "red",
+      []
+    ],
+    [
+      "rr:2",
+      "red:A",
+      "red",
+      []
+    ],
+    [
+      "red:C",
+      "esp:GND.2",
+      "black",
+      []
+    ]
+  ]
+}
