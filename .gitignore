@@ -21,3 +21,5 @@ roi_previews/*
 # Local biometric test photos and prediction records
 test_photos/
 test_results/
+# Real camera pictures and inferred palm ROI must remain local
+live_captures/
