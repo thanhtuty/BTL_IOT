@@ -23,3 +23,5 @@ test_photos/
 test_results/
 # Real camera pictures and inferred palm ROI must remain local
 live_captures/
+# Experiments outputs can include biometric ROIs, learned weights, scores
+experiments/results/
