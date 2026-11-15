@@ -212,6 +212,21 @@ def cmd_compare(args):
     finally:
         if cropper:
             cropper.close()
+    # Per-class breakdown and confusion matrices (critical for person_01/04).
+    counts["per_person"] = {}
+    counts["confusion"] = {"baseline": {}, "compact": {}}
+    for person in classes:
+        relevant = [row for row in rows if row["expected"] == person and not row["error"]]
+        counts["per_person"][person] = {
+            "total": len(relevant),
+            "baseline_correct": sum(row["baseline_pred"] == person for row in relevant),
+            "compact_correct": sum(row["compact_pred"] == person for row in relevant),
+        }
+        for mode, pred_key in (("baseline", "baseline_pred"), ("compact", "compact_pred")):
+            counts["confusion"][mode][person] = {
+                candidate: sum(row[pred_key] == candidate for row in relevant)
+                for candidate in classes
+            }
     n = counts["processed"]
     counts["baseline_accuracy"] = round(counts["baseline_correct"] / n, 5) if n else None
     counts["compact_accuracy"] = round(counts["compact_correct"] / n, 5) if n else None
