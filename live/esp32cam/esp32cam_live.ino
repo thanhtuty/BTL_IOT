@@ -51,7 +51,6 @@ void captureJpeg() {
   }
   // The response body is the ACTUAL camera frame acquired above.
   http.sendHeader("Cache-Control", "no-store, no-cache, must-revalidate");
-  http.sendHeader("Access-Control-Allow-Origin", "*"); // LAN demo ONLY
   http.sendHeader("Content-Disposition", "inline; filename=palm_capture.jpg");
   http.setContentLength(fb->len);
   http.send(200, "image/jpeg", "");
