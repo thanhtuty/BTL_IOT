@@ -99,15 +99,20 @@ def load_encoder(weights_path, device='cpu'):
             'Kiểm tra định dạng, phiên bản PyTorch và nguồn file. '
             'Không tắt weights_only cho file không tin cậy.'
         ) from exc
+    input_size = IMAGE_SIZE
     if isinstance(checkpoint, Mapping):
         emb = checkpoint.get('embedding_dim')
         img = checkpoint.get('image_size')
         if emb is not None and int(emb) != EMBED_DIM:
             raise ValueError(f'Checkpoint embedding_dim={emb}, cần {EMBED_DIM}.')
-        if img is not None and int(img) != IMAGE_SIZE:
-            raise ValueError(f'Checkpoint image_size={img}, cần {IMAGE_SIZE}.')
+        if img is not None:
+            input_size = int(img)
+    if input_size not in (64, IMAGE_SIZE):
+        raise ValueError(f'Checkpoint image_size={input_size}, chỉ hỗ trợ 64 hoặc {IMAGE_SIZE}.')
     backbone_state, pb_state = extract_parts(checkpoint)
     kind = detect_backbone_type(backbone_state)
+    if input_size == 64 and kind != 'custom_compact':
+        raise ValueError('Ảnh 64x64 chỉ hỗ trợ checkpoint Custom Compact pool2.')
     backbone = (OfficialCompNetBackbone() if kind == 'official' else
                 CustomCompactBackbone() if kind == 'custom_compact' else
                 CustomCompNetBackbone())
@@ -120,6 +125,7 @@ def load_encoder(weights_path, device='cpu'):
             f'Trọng số không khớp backbone {kind}; hãy dùng checkpoint đúng '
             'với notebook PalmBridge được gửi. Chi tiết: ' + str(exc)
         ) from exc
+    model.input_size = input_size  # metadata, not a trainable weight
     model = model.to(device)
     model.eval()
     return model, kind
