@@ -169,7 +169,7 @@ void loop() {
   wl_status_t wifiStatus = WiFi.status();
   if ((int)wifiStatus != previousWiFiStatus) {
     previousWiFiStatus = (int)wifiStatus;
-    Serial.printf("[WIFI] status=%d (%s)\\n", (int)wifiStatus,
+    Serial.printf("[WIFI] status=%d (%s)\n", (int)wifiStatus,
                   wifiStatus == WL_CONNECTED ? "CONNECTED" : "NOT CONNECTED");
     if (wifiStatus == WL_CONNECTED) {
       Serial.print("[WIFI] Connected! IP: ");
@@ -179,7 +179,7 @@ void loop() {
   }
   if (wifiStatus != WL_CONNECTED && now - lastWiFiLogAt >= WIFI_LOG_MS) {
     lastWiFiLogAt = now;
-    Serial.printf("[WIFI] Waiting for Wokwi-GUEST... status=%d\\n", (int)wifiStatus);
+    Serial.printf("[WIFI] Waiting for Wokwi-GUEST... status=%d\n", (int)wifiStatus);
     screen("WiFi not connected", "SSID: Wokwi-GUEST", "Check IoT Gateway", "Serial Monitor");
   }
   // Do not reset the WiFi connection every 6 seconds: Wokwi's
