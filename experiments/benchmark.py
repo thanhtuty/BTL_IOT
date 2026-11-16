@@ -72,7 +72,35 @@ def score_validation(model, centers, validation, device):
     return good / total if total else 0.0
 
 
-def save_checkpoint(model, path, epoch, val_acc, classes, origin):
+def is_better_val(acc, margin, best_acc, best_margin):
+    """Prefer higher nearest-centroid accuracy; use cosine margin to break ties."""
+    return acc > best_acc or (acc == best_acc and margin > best_margin)
+
+
+@torch.inference_mode()
+def validation_metrics(model, centers, validation, device):
+    """Same inference rule as compare(): closest training centroid."""
+    model.eval()
+    count = correct = 0
+    margin_sum = 0.0
+    for x, y in validation:
+        x, y = x.to(device), y.to(device)
+        z = model.get_embedding(x)
+        scores = z @ centers.T
+        pred = scores.argmax(dim=1)
+        correct += int((pred == y).sum().item())
+        genuine = scores.gather(1, y[:, None]).squeeze(1)
+        impostors = scores.clone()
+        impostors.scatter_(1, y[:, None], float("-inf"))
+        closest_other = impostors.max(dim=1).values
+        margin_sum += float((genuine - closest_other).sum().item())
+        count += len(y)
+    if count == 0:
+        raise ValueError("Validation trống; không thể chọn checkpoint.")
+    return correct / count, margin_sum / count
+
+
+def save_checkpoint(model, path, epoch, val_acc, classes, origin, val_margin):
     path.parent.mkdir(parents=True, exist_ok=True)
     torch.save({
         "backbone": {k: v.detach().cpu() for k, v in model.backbone.state_dict().items()},
@@ -81,6 +109,7 @@ def save_checkpoint(model, path, epoch, val_acc, classes, origin):
         "backbone_type": "custom_compact", "pool_size": 2,
         "class_names": classes, "epoch": epoch,
         "val_centroid_accuracy": val_acc,
+        "val_cosine_margin": val_margin,
         "initialized_from": str(origin),
     }, path)
 
@@ -89,6 +118,7 @@ def cmd_train(args):
     if args.epochs < 1:
         raise ValueError("--epochs phải >0")
     train = datasets_for(args.prepared)
+    torch.manual_seed(args.seed)  # CPU repro; GPU kernels can still be nondeterministic.
     device = torch.device(args.device)
     full, kind = load_encoder(args.full, device)
     if kind != "custom":
@@ -113,6 +143,8 @@ def cmd_train(args):
                         shuffle=False, num_workers=0)
     history = []
     best = -1.0
+    best_margin = float("-inf")
+    best_epoch = None
     for epoch in range(1, args.epochs + 1):
         model.eval()  # Small dataset: freeze batch-norm moving statistics.
         head.train()
@@ -128,22 +160,30 @@ def cmd_train(args):
             optimizer.step()
             loss_sum += float(loss.item()) * len(y)
         centers = centroids(model, train_eval, 4, device)
-        val_acc = score_validation(model, centers, val_dl, device)
+        val_acc, val_margin = validation_metrics(model, centers, val_dl, device)
         record = {"epoch": epoch, "train_arc_loss": round(loss_sum / len(train["train"]), 5),
-                  "val_nearest_centroid_acc": round(val_acc, 5)}
+                  "val_nearest_centroid_acc": round(val_acc, 5),
+                  "val_cosine_margin": round(val_margin, 6)}
         history.append(record)
         print(f"Epoch {epoch}/{args.epochs}: loss={record['train_arc_loss']:.4f}, "
-              f"val cosine nearest-centroid={val_acc:.1%}", flush=True)
-        if val_acc > best:
+              f"val nearest-centroid={val_acc:.1%}, margin={val_margin:.5f}", flush=True)
+        if is_better_val(val_acc, val_margin, best, best_margin):
             best = val_acc
-            save_checkpoint(model, args.compact, epoch, best, train["train"].classes, args.full)
+            best_margin = val_margin
+            best_epoch = epoch
+            save_checkpoint(model, args.compact, epoch, best, train["train"].classes, args.full, val_margin)
     RESULTS.mkdir(parents=True, exist_ok=True)
     (RESULTS / "compact_train_history.json").write_text(
         json.dumps({"history": history, "best_val": best,
-                    "selection": "validation nearest train centroid; test_photos NEVER used for checkpoint selection",
+                    "best_epoch": best_epoch, "best_val_cosine_margin": best_margin,
+                    "seed": args.seed,
+                    "selection": ("highest validation nearest-centroid accuracy; "
+                                  "ties resolved by mean true-class minus closest-impostor "
+                                  "cosine margin. test_photos NEVER used for selection"),
                     "warning": "Random-split val may be biased; obtain independent sessions."},
                    ensure_ascii=False, indent=2), encoding="utf-8")
-    print("Saved best compact checkpoint:", args.compact)
+    print(f"Saved best compact checkpoint: {args.compact} "
+          f"(epoch={best_epoch}, val_accuracy={best:.1%}, cosine_margin={best_margin:.5f})")
     print("Now run: python experiments/benchmark.py compare")
 
 
@@ -359,6 +399,7 @@ def main():
     p.add_argument("--hand-model", type=Path, default=DEFAULT_HAND_LANDMARKER)
     p.add_argument("--epochs", type=int, default=12)
     p.add_argument("--batch-size", type=int, default=4)
+    p.add_argument("--seed", type=int, default=42)
     p.add_argument("--lr", type=float, default=1e-5)
     p.add_argument("--head-lr", type=float, default=1e-4)
     p.add_argument("--device", choices=["cpu", "cuda"], default="cpu")
