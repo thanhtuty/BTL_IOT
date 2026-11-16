@@ -54,17 +54,19 @@ class NormSingleROI:
         return tensor
 
 
-def build_transform():
-    # Đúng thứ tự transform trong palmbridge.ipynb cell 2.
+def build_transform(image_size=IMAGE_SIZE):
+    # Original default is 128. B5 may explicitly request a 64x64 experiment.
+    if image_size not in (64, IMAGE_SIZE):
+        raise ValueError(f"Unsupported ROI image size: {image_size}")
     return T.Compose([
-        T.Resize((IMAGE_SIZE, IMAGE_SIZE), interpolation=T.InterpolationMode.BICUBIC),
+        T.Resize((image_size, image_size), interpolation=T.InterpolationMode.BICUBIC),
         T.ToTensor(),
         NormSingleROI(),
     ])
 
 
 def preprocess_file(path, transform=None, cropper=None):
-    """Trả về tensor [1, 1, 128, 128] có thể đưa vào model."""
+    """Trả về tensor [1, 1, H, W] theo transform (mặc định H=W=128)."""
     transform = transform or build_transform()
     with Image.open(path) as image:
         image = ImageOps.exif_transpose(image)
