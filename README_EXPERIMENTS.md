@@ -39,12 +39,12 @@ Trong `models/compact.py`: giữ nguyên Gabor 32 filter, CNN block1..block4, Pa
 - Linear mới: 1024→512 = 524.288 tham số (giảm đúng **75% số tham số FC**).
 - Khởi tạo FC mới bằng tổng các trọng số 2×2 không gian từ FC gốc; các layer còn lại nạp từ checkpoint cũ.
 - Chỉ train block4, embed và PalmBridge; thêm ArcFace head phụ **chỉ để train**.
-- Checkpoint được chọn bằng accuracy **cosine nearest centroid trên validation**, thay vì val accuracy của head phụ.
+- Checkpoint được chọn bằng accuracy **cosine nearest centroid trên validation**; khi tất cả epoch cùng accuracy (ví dụ 100%) thì chọn epoch có **cosine margin trung bình lớn nhất** giữa người đúng và đối thủ gần nhất. Đây vẫn chỉ là tiêu chí Validation nhỏ, không bảo đảm tổng quát hóa.
 - Kết quả validation vẫn lạc quan nếu ảnh bị chia ngẫu nhiên cùng buổi: cần 3 buổi chụp độc lập/người để kiểm chứng.
 - Ảnh `test_photos` KHÔNG được dùng để train hoặc chọn epoch.
 
 ```powershell
-python experiments/benchmark.py train --epochs 12 --batch-size 4 --device cpu
+python experiments/benchmark.py train --epochs 12 --batch-size 4 --device cpu --seed 42
 ```
 
 Lưu checkpoint **mới**: `weights/palmbridge_compact_pool2.pt`.
@@ -106,3 +106,28 @@ Tất cả kết quả và ảnh sinh trắc của nhóm nằm trong `experiment
 Không sử dụng ảnh Test để fine-tune, định ngưỡng hay chọn kiến trúc.
 
 **Trạng thái:** Code đã được xây dựng; checkpoint và ảnh dữ liệu thật không có trên GitHub nên không thể chạy đánh giá accuracy thật cho 4 người từ xa. Các lệnh trên chạy trực tiếp trên máy bạn.
+
+
+## Lưu ý sau khi hoàn tất 12 epoch mà Validation luôn 100%
+
+Bản `benchmark.py` đầu tiên chỉ lưu khi `val_acc > best`; nếu tất cả
+epoch đều 100%, checkpoint lưu ngay ở epoch **1**. Đã sửa cách chọn epoch:
+ưu tiên accuracy, khi hòa thì lấy **mean cosine margin** lớn nhất trên Validation.
+Điều này KHÔNG có nghĩa accuracy trên ảnh mới sẽ tốt hơn, đặc biệt khi chỉ
+có 15 ảnh Validation.
+
+Đối với người đã train với bản code cũ:
+
+```powershell
+Copy-Item weights/palmbridge_compact_pool2.pt weights/palmbridge_compact_pool2_epoch1_backup.pt
+git fetch origin "refs/heads/experiment/compact-compnet-esp32"
+git merge --ff-only FETCH_HEAD
+python -m unittest discover -s tests -p "test_custom_compact.py" -v
+python experiments/benchmark.py train --epochs 12 --batch-size 4 --device cpu --seed 42
+```
+
+Kiểm tra epoch được chọn:
+
+```powershell
+python -c "import torch; p=torch.load('weights/palmbridge_compact_pool2.pt',map_location='cpu',weights_only=True); print('Epoch:',p['epoch'],'Val accuracy:',p['val_centroid_accuracy'],'Cosine margin:',p.get('val_cosine_margin'))"
+```
