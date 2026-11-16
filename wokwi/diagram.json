@@ -97,6 +97,25 @@
       "attrs": {
         "value": "220"
       }
+    },
+    {
+      "type": "wokwi-buzzer",
+      "id": "buzzer",
+      "left": 420,
+      "top": 385,
+      "attrs": {
+        "volume": "0.3"
+      }
+    },
+    {
+      "type": "wokwi-slide-switch",
+      "id": "door",
+      "left": 410,
+      "top": 110,
+      "attrs": {
+        "value": "",
+        "bounce": "0"
+      }
     }
   ],
   "connections": [
@@ -232,6 +251,30 @@
     [
       "red:C",
       "esp:GND.2",
+      "black",
+      []
+    ],
+    [
+      "buzzer:2",
+      "esp:19",
+      "orange",
+      []
+    ],
+    [
+      "buzzer:1",
+      "esp:GND.2",
+      "black",
+      []
+    ],
+    [
+      "door:2",
+      "esp:23",
+      "purple",
+      []
+    ],
+    [
+      "door:1",
+      "esp:GND.1",
       "black",
       []
     ]
