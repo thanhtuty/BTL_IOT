@@ -131,3 +131,21 @@ Kiểm tra epoch được chọn:
 ```powershell
 python -c "import torch; p=torch.load('weights/palmbridge_compact_pool2.pt',map_location='cpu',weights_only=True); print('Epoch:',p['epoch'],'Val accuracy:',p['val_centroid_accuracy'],'Cosine margin:',p.get('val_cosine_margin'))"
 ```
+
+## B5 — Gabor streaming và ROI 64×64
+
+Đã bổ sung thử nghiệm riêng, **không ghi đè** checkpoint B2.
+Xem toàn bộ trình tự và lệnh chính xác tại [README_B5.md](README_B5.md).
+
+```powershell
+python -m unittest discover -s tests -p "test_b5.py" -v
+python experiments/b5.py memory
+python experiments/b5.py stream-test --samples 3 --device cpu
+python experiments/b5.py train64 --epochs 12 --batch-size 4 --device cpu --seed 42
+python experiments/b5.py compare64 --tests test_photos --input-format full-hand --device cpu
+```
+
+B5 hiện mới đánh giá trên **PyTorch PC**, chưa có .espdl hoặc firmware ESP32-CAM.
+Checkpoint 64 cần đăng ký template sinh trắc học mới nếu sau này dùng trong
+ứng dụng verify thật; database đã enroll với checkpoint 128 không tương thích
+với checkpoint 64 (hash và vector embedding thay đổi).
