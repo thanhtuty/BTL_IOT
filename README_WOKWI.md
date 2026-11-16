@@ -1,3 +1,8 @@
+> **MUỐN CHỤP ẢNH MỚI + CHẠY COMPNet/PALMBRIDGE THẬT + THỬ SERVO TRÊN WOKWI?**
+> Hãy dùng [README_REAL_WOKWI.md](README_REAL_WOKWI.md), `wokwi_live/`
+> và `live/live_wokwi.py`. Phần `wokwi/` cũ chỉ phát lại điểm số CSV,
+> KHÔNG chụp ảnh và KHÔNG suy luận AI.
+>
 > **Cập nhật:** Wokwi đã bổ sung **buzzer GPIO19** và **công tắc trạng thái cửa GPIO23**.
 > Công tắc gạt trái = CLOSED, gạt phải = OPEN. Khi OPEN, lệnh mở khóa bị từ chối.
 > **Hướng dẫn mạch và lệnh xuất điểm Compact 64x64 mới nhất:** [wokwi/README.md](wokwi/README.md).
