@@ -46,5 +46,14 @@ class TestCustomCompact(unittest.TestCase):
         self.assertAlmostEqual(float(vec.norm()), 1.0, places=4)
 
 
+class TestCheckpointSelection(unittest.TestCase):
+    def test_equal_accuracy_uses_margin_tiebreaker(self):
+        from experiments.benchmark import is_better_val
+        self.assertTrue(is_better_val(1.0, 0.30, 1.0, 0.20))
+        self.assertFalse(is_better_val(1.0, 0.10, 1.0, 0.20))
+        self.assertFalse(is_better_val(1.0, 0.20, 1.0, 0.20))
+        self.assertTrue(is_better_val(1.0, -0.10, 0.9, 1.00))
+
+
 if __name__ == "__main__":
     unittest.main()
