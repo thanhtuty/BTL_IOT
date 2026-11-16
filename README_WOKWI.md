@@ -1,3 +1,9 @@
+> **Cập nhật:** Wokwi đã bổ sung **buzzer GPIO19** và **công tắc trạng thái cửa GPIO23**.
+> Công tắc gạt trái = CLOSED, gạt phải = OPEN. Khi OPEN, lệnh mở khóa bị từ chối.
+> **Hướng dẫn mạch và lệnh xuất điểm Compact 64x64 mới nhất:** [wokwi/README.md](wokwi/README.md).
+> Nếu muốn chạy phần cứng mà không tiếp tục train, hãy đọc file này trước.
+> Chưa mô phỏng camera OV2640, chưa có suy luận CompNet trên ESP32.
+
 # PalmLock-AI - Wokwi hardware integration (separate Git branch)
 
 Branch: `feat/wokwi-palm-lock-simulation`. The original Python / PyTorch AI files are **unchanged**.
