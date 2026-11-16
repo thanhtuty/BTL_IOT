@@ -1,7 +1,7 @@
 """API trích xuất đặc trưng: PC/Kaggle, không chạy trên ESP32-S3."""
 from pathlib import Path
 import torch
-from config import DEFAULT_HAND_LANDMARKER
+from config import DEFAULT_HAND_LANDMARKER, IMAGE_SIZE
 from preprocessing import build_transform, preprocess_file
 from models.checkpoint import load_encoder
 
@@ -12,7 +12,8 @@ class PalmEmbedder:
                  roi_width_scale=1.30, roi_height_scale=1.50):
         self.device = torch.device(device or ('cuda' if torch.cuda.is_available() else 'cpu'))
         self.model, self.backbone_type = load_encoder(weights_path, self.device)
-        self.transform = build_transform()
+        self.input_size = getattr(self.model, "input_size", IMAGE_SIZE)
+        self.transform = build_transform(self.input_size)
         self.weights_path = Path(weights_path)
         if input_format not in {"roi", "full-hand"}:
             raise ValueError("input_format chỉ nhận 'roi' hoặc 'full-hand'.")
