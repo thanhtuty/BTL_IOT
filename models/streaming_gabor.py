@@ -34,7 +34,7 @@ def streaming_gabor_compete(gabor, x):
             pooled = response
         else:
             # In-place update: do not keep 32 activation maps.
-            pooled.maximum_(response)
+            torch.maximum(pooled, response, out=pooled)
     if pooled is None:
         raise ValueError("No Gabor filters.")
     return pooled
