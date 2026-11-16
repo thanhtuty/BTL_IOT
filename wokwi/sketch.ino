@@ -1,4 +1,4 @@
-// PalmLock Wokwi: ESP32 + UART camera-data LOOPBACK + servo + OLED
+// PalmLock Wokwi: ESP32 + UART score LOOPBACK + servo + OLED + buzzer + door switch
 // DEMO ONLY! Does not run MediaPipe, CompNet, PalmBridge, or capture OV2640.
 // Replays real scores previously obtained from PalmBridge on the PC.
 // Connect GPIO17 (TX2) -> GPIO16 (RX2) for one-board Wokwi simulation.
@@ -16,6 +16,8 @@ static const int PIN_TEST = 25;
 static const int PIN_GREEN = 26;
 static const int PIN_RED = 27;
 static const int PIN_SERVO = 18;
+static const int PIN_BUZZER = 19;   // Wokwi piezo buzzer (+)
+static const int PIN_DOOR = 23;     // INPUT_PULLUP: LOW=door closed, HIGH=open
 static const int PIN_UART_RX = 16;
 static const int PIN_UART_TX = 17;
 static const int THRESHOLD_X10000 = 8500; // 0.85. Lock remains fail-closed.
@@ -28,6 +30,15 @@ unsigned long openedAt = 0;
 bool lockOpened = false;
 char rxLine[96];
 size_t rxSize = 0;
+bool previousDoorOpen = false;
+
+bool doorIsOpen() {
+  // Slide switch: common pin 2 -> GPIO23; left pin 1 -> GND.
+  // LEFT (default) = CLOSED; RIGHT = OPEN (GPIO23 pulled HIGH).
+  return digitalRead(PIN_DOOR) == HIGH;
+}
+void beepGrant() { tone(PIN_BUZZER, 1800, 130); }
+void beepDeny() { tone(PIN_BUZZER, 520, 220); }
 
 void closeLock() {
   lockServo.write(0);
@@ -59,7 +70,7 @@ void showSelected() {
   char a[36], b[36];
   snprintf(a,sizeof(a),"Image %d/%d",selected+1,(int)DEMO_COUNT);
   snprintf(b,sizeof(b),"Expected: person_%02d",DEMO_SAMPLES[selected].expected);
-  screen(a,b,"NEXT=change  SCAN=run","TEST=synthetic accept");
+  screen(a,b,"N=next  S=scan  T=test", doorIsOpen() ? "DOOR: OPEN" : "DOOR: CLOSED");
   Serial.printf("[SELECT] %d: %s\n",selected+1,DEMO_SAMPLES[selected].file);
 }
 
@@ -103,14 +114,21 @@ void consumeFrame(const char *text) {
   snprintf(a,sizeof(a),"Predicted: person_%02d",predicted);
   snprintf(b,sizeof(b),"Cosine: %.2f%%",score[best]/100.0f);
   snprintf(c,sizeof(c),"%s",synthetic?"TEST FRAME":(predicted==actual?"TOP1 CORRECT":"TOP1 WRONG"));
-  if (accepted) {
-    Serial.println("[LOCK] OPEN -- accepted score (synthetic demo only with current replay set)");
+  if (accepted && !doorIsOpen()) {
+    Serial.println("[LOCK] OPEN -- synthetic high score or accepted UART frame; DEMO ONLY");
     openLock();
+    beepGrant();
     screen(a,b,c,"LOCK: OPEN (2.5s)");
   } else {
-    Serial.println("[LOCK] DENIED -- score below 0.85, servo stays closed");
+    if (doorIsOpen()) {
+      Serial.println("[LOCK] DENIED -- door switch indicates OPEN");
+      screen(a,b,c,"LOCK: DOOR OPEN");
+    } else {
+      Serial.println("[LOCK] DENIED -- cosine below 0.85");
+      screen(a,b,c,"LOCK: DENIED");
+    }
     closeLock();
-    screen(a,b,c,"LOCK: DENIED");
+    beepDeny();
   }
 }
 void pollUART() {
@@ -142,6 +160,9 @@ void setup() {
   pinMode(PIN_TEST,INPUT_PULLUP);
   pinMode(PIN_GREEN,OUTPUT);
   pinMode(PIN_RED,OUTPUT);
+  pinMode(PIN_BUZZER, OUTPUT);
+  pinMode(PIN_DOOR, INPUT_PULLUP);
+  previousDoorOpen = doorIsOpen();
   Wire.begin(21,22);
   oledOk=oled.begin(SSD1306_SWITCHCAPVCC,0x3C);
   lockServo.setPeriodHertz(50);
@@ -151,9 +172,17 @@ void setup() {
   Serial.println("PalmLock Wokwi hardware integration / RECORDED-SCORES REPLAY ONLY");
   Serial.println("Wire GPIO17->GPIO16 creates UART loopback for one-MCU Wokwi.");
   Serial.println("NEXT: select photo; SCAN: replay model scores; TEST: artificial 95% unlock.");
+  Serial.println("BUZZER GPIO19; DOOR SWITCH GPIO23: LEFT=CLOSED, RIGHT=OPEN (blocks unlock).");
   showSelected();
 }
 void loop() {
+  bool nowDoorOpen = doorIsOpen();
+  if (nowDoorOpen != previousDoorOpen) {
+    previousDoorOpen = nowDoorOpen;
+    Serial.println(nowDoorOpen ? "[DOOR] Sensor: OPEN" : "[DOOR] Sensor: CLOSED");
+    if (nowDoorOpen && !lockOpened) beepDeny();
+    showSelected();
+  }
   if (edgePressed(PIN_NEXT,0)) {
     selected=(selected+1)%DEMO_COUNT;
     showSelected();
