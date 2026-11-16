@@ -41,7 +41,11 @@ bool motorPulsing = false;
 bool lastDoorOpen = false;
 unsigned long startedPulse = 0;
 unsigned long lastConnectAttempt = 0;
-unsigned long lastWiFiAttempt = 0;
+unsigned long wifiStartedAt = 0;
+unsigned long lastWiFiLogAt = 0;
+int previousWiFiStatus = -1;
+static const unsigned long WIFI_RETRY_MS = 30000;
+static const unsigned long WIFI_LOG_MS = 5000;
 
 bool doorOpen() {
   return digitalRead(PIN_DOOR) == HIGH;
@@ -151,20 +155,42 @@ void setup() {
   Serial.println("CHECK: change TOPIC to the same random value as Python --topic.");
   Serial.println("WARNING: open public MQTT! BENCH ONLY; DO NOT FLASH TO REAL LOCK.");
   WiFi.mode(WIFI_STA);
+  WiFi.setAutoReconnect(true);
+  Serial.println("[WIFI] Connecting to Wokwi-GUEST, channel 6...");
   WiFi.begin("Wokwi-GUEST", "", 6);
+  wifiStartedAt = millis();
+  lastWiFiLogAt = millis();
   mqtt.setServer(BROKER, MQTT_PORT);
   mqtt.setCallback(onMessage);
 }
 
 void loop() {
   unsigned long now = millis();
-  if (WiFi.status() != WL_CONNECTED && now - lastWiFiAttempt > 6000) {
-    lastWiFiAttempt = now;
-    Serial.println("[WIFI] Reconnecting Wokwi-GUEST...");
+  wl_status_t wifiStatus = WiFi.status();
+  if ((int)wifiStatus != previousWiFiStatus) {
+    previousWiFiStatus = (int)wifiStatus;
+    Serial.printf("[WIFI] status=%d (%s)\\n", (int)wifiStatus,
+                  wifiStatus == WL_CONNECTED ? "CONNECTED" : "NOT CONNECTED");
+    if (wifiStatus == WL_CONNECTED) {
+      Serial.print("[WIFI] Connected! IP: ");
+      Serial.println(WiFi.localIP());
+      screen("WiFi connected", "Connecting MQTT...", "AI running on PC", "Wokwi hardware");
+    }
+  }
+  if (wifiStatus != WL_CONNECTED && now - lastWiFiLogAt >= WIFI_LOG_MS) {
+    lastWiFiLogAt = now;
+    Serial.printf("[WIFI] Waiting for Wokwi-GUEST... status=%d\\n", (int)wifiStatus);
+    screen("WiFi not connected", "SSID: Wokwi-GUEST", "Check IoT Gateway", "Serial Monitor");
+  }
+  // Do not reset the WiFi connection every 6 seconds: Wokwi's
+  // virtual gateway can take some time. Retry only after 30 seconds.
+  if (wifiStatus != WL_CONNECTED && now - wifiStartedAt >= WIFI_RETRY_MS) {
+    wifiStartedAt = now;
+    Serial.println("[WIFI] Retry after 30s without connection...");
     WiFi.disconnect();
     WiFi.begin("Wokwi-GUEST", "", 6);
   }
-  if (WiFi.status() == WL_CONNECTED) {
+  if (wifiStatus == WL_CONNECTED) {
     if (!mqtt.connected() && now - lastConnectAttempt > 4000) {
       lastConnectAttempt = now;
       String id = "palm-wokwi-" + String((uint32_t)ESP.getEfuseMac(), HEX);
