@@ -230,10 +230,10 @@ static String enroll(int id) {
 static String scanPalm() {
   scanNo++;
   if (!cameraOK) return reject("Camera not initialized");
+  uint32_t startMs = millis(); // measure capture + feature + comparison
   camera_fb_t *fb = esp_camera_fb_get();
   if (!fb) return reject("Camera capture failed");
   float f[FEAT_DIM];
-  uint32_t startMs = millis();
   bool ok = makeDescriptor(fb, f);
   esp_camera_fb_return(fb);
   if (!ok) return reject("Grayscale frame/ROI invalid");
