@@ -178,7 +178,7 @@ def main():
                 'checkpoint': str(Path(args.weights).resolve()),
                 'backbone_type': embedder.backbone_type,
                 'embedding_dim': 512,
-                'image_size': [128, 128],
+                'image_size': [embedder.input_size, embedder.input_size],
                 'device': str(embedder.device),
             }
         elif args.command == 'embedding':
