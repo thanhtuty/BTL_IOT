@@ -22,3 +22,5 @@ roi_previews/*
 photos_raw_v2/**/*
 !photos_raw_v2/**/
 !photos_raw_v2/**/.gitkeep
+!dataset_v2/README.md
+!photos_raw_v2/README.md

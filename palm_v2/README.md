@@ -107,3 +107,11 @@ ROI 64x64 grayscale
 Lệnh `export` sinh `palm_v2/firmware/generated_palm_v2.h`, gồm float32 CNN, centroid và ngưỡng. File C++ `PalmLiteV2.cpp/.h` là bộ suy luận tham chiếu không cần TensorFlow Lite. Xem `palm_v2/firmware/README.md` để tích hợp vào camera. Code hiện **chưa được build hoặc benchmark trên ESP32 thật**. Cần kiểm tra độ lệch giữa kết quả Python và C++, chất lượng ROI camera, Flash, PSRAM, latency, FAR/FRR thực tế, và chống ảnh giả trước khi sử dụng mở cửa thật.
 
 Các file gốc ở root vẫn là baseline PC V1; đừng nhầm lệnh `python main.py` (V1) với `python -m palm_v2.cli` (V2).
+
+## 7. Kiểm thử mã nguồn trước khi dùng ảnh thật
+
+```powershell
+python -m unittest discover -s tests -p test_palm_v2.py -v
+```
+
+Các unit test kiểm tra tensor, dữ liệu và export với checkpoint nhân tạo. Chúng **không chứng minh độ chính xác**, không thay thế benchmark trên board. Firmware C++ là bản tham chiếu chưa được chạy test trên phần cứng.
