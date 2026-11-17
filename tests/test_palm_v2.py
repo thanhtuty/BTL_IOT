@@ -51,6 +51,7 @@ class PalmV2Tests(unittest.TestCase):
                 "checkpoint_sha256": sha256(checkpoint),
                 "templates_sha256": sha256(templates),
                 "threshold": 0.5,
+                "margin_threshold": 0.05,
             }), encoding="utf8")
             result = export_header(checkpoint, templates, thresholds, output)
             self.assertTrue(output.is_file())

@@ -46,6 +46,7 @@ static bool normalize(const uint8_t *roi, float *dst) {
     variance += d * d;
   }
   float stdv = sqrtf((float)(variance / (n - 1)));
+  if (stdv < 0.01f) return false; // flat or near-blank ROI
   for (int i = 0; i < 4096; ++i) {
     dst[i] = roi[i] ? (float)(((double)roi[i] / 255.0 - mean) / (stdv + 1e-6f)) : 0.0f;
   }
@@ -193,7 +194,7 @@ bool palmLitePredict(const uint8_t roi64[4096], PalmLitePrediction &out) {
   out.best = out.scores[best];
   out.margin = out.best - second;
   out.candidate = best + 1;
-  out.accepted = out.best >= w::kThreshold;
+  out.accepted = (out.best >= w::kThreshold) && (out.margin >= w::kMarginThreshold);
   out.person = out.accepted ? best + 1 : 0;
   out.latencyMs = millis() - start;
   out.valid = true;

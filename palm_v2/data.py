@@ -81,6 +81,8 @@ def normalize_roi(roi):
     selected = values[valid]
     mean = selected.mean(dtype=np.float64)
     std = selected.std(ddof=1, dtype=np.float64)
+    if std < 0.01:
+        raise ValueError("Palm ROI has too little contrast; recapture in better lighting")
     values[valid] = (values[valid] - mean) / (std + 1e-6)
     values[~valid] = 0.0
     return values.astype(np.float32)

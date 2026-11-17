@@ -84,7 +84,7 @@ ROI 64x64 grayscale
  -> GlobalAveragePooling
  -> embedding 128D, L2 normalized
  -> cosine với 4 centroid
- -> threshold -> person_01..04 hoặc unknown
+ -> ngưỡng cosine + chênh lệch top-1/top-2 -> person_01..04 hoặc unknown
 ```
 
 **Khác với V1**: giảm số filter Gabor từ 32×15×15 xuống 4×7×7, thay Conv thường bằng depthwise separable, giảm embedding 512 xuống 128 và **không tái sử dụng PalmBridge 512 prototype cũ**. Đây là mô hình mới phải train từ đầu; thuật toán mới *chưa có độ chính xác được chứng minh*.

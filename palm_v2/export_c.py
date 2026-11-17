@@ -43,7 +43,7 @@ def c_array(name, values):
 def export_header(checkpoint, templates, threshold_path, output):
     model = load_trained(checkpoint)
     centers = load_templates(checkpoint, templates)
-    threshold = load_threshold(checkpoint, templates, threshold_path)
+    threshold, margin_threshold = load_threshold(checkpoint, templates, threshold_path)
     arrays = [("gabor", model.gabor.detach().cpu().numpy())]
     w, b = fused(model.stem[0], model.stem[1])
     arrays.extend([("stem_w", w), ("stem_b", b)])
@@ -66,6 +66,7 @@ def export_header(checkpoint, templates, threshold_path, output):
         "static constexpr int kInputSide = 64;",
         "static constexpr int kEmbeddingDim = 128;",
         f"static constexpr float kThreshold = {to_cfloat(threshold)};",
+        f"static constexpr float kMarginThreshold = {to_cfloat(margin_threshold)};",
     ]
     text.extend(c_array(name, values) for name, values in arrays)
     text.append("} // namespace palm_v2_weights\n")
@@ -73,4 +74,4 @@ def export_header(checkpoint, templates, threshold_path, output):
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text("\n".join(text), encoding="utf-8")
     return {"header": str(output), "size_bytes": output.stat().st_size,
-            "threshold": threshold, "arrays": [name for name, _ in arrays]}
+            "threshold": threshold, "margin_threshold": margin_threshold, "arrays": [name for name, _ in arrays]}

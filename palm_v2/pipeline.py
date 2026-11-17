@@ -69,6 +69,11 @@ def score_vectors(z, centers):
     return best_index, best, scores
 
 
+def margins(scores):
+    ordered = np.sort(scores, axis=1)
+    return ordered[:, -1] - ordered[:, -2]
+
+
 def calibration(checkpoint, templates, data_root, output):
     model = load_trained(checkpoint)
     centers = load_templates(checkpoint, templates)
@@ -78,24 +83,29 @@ def calibration(checkpoint, templates, data_root, output):
         raise ValueError("Need session_02: at least 2 photos per member and 10 outsider photos")
     kz, ky = embeddings_for(model, known)
     uz, _ = embeddings_for(model, outsiders)
-    kid, ks, _ = score_vectors(kz, centers)
-    uid, us, _ = score_vectors(uz, centers)
-    del uid
-    # Optimize on validation only. FAR is emphasized because this controls a lock.
-    # A threshold cannot compensate for few or unrepresentative outsiders.
+    kid, ks, k_scores = score_vectors(kz, centers)
+    _, us, u_scores = score_vectors(uz, centers)
+    km, um = margins(k_scores), margins(u_scores)
+    # Validation-only grid search for BOTH identity score and second-best gap.
+    # FAR is weighted highly because this pipeline may be used for a lock.
     choices = []
-    for threshold in np.linspace(-1.0, 1.0, 2001):
-        reject_or_wrong = float(np.mean((ks < threshold) | (kid != ky)))
-        outsider_accept = float(np.mean(us >= threshold))
-        wrong_identity_accept = float(np.mean((kid != ky) & (ks >= threshold)))
-        objective = reject_or_wrong + 5.0 * outsider_accept + 10.0 * wrong_identity_accept
-        choices.append((objective, -float(threshold), reject_or_wrong, outsider_accept))
-    score, neg_t, false_reject_or_wrong, far = min(choices)
-    threshold = -neg_t
+    for threshold in np.linspace(-1.0, 1.0, 401):
+        for margin_threshold in np.linspace(0.0, 0.35, 36):
+            known_accept = (ks >= threshold) & (km >= margin_threshold)
+            unknown_accept = (us >= threshold) & (um >= margin_threshold)
+            reject_or_wrong = float(np.mean((~known_accept) | (kid != ky)))
+            outsider_accept = float(np.mean(unknown_accept))
+            wrong_identity_accept = float(np.mean(known_accept & (kid != ky)))
+            objective = reject_or_wrong + 5.0 * outsider_accept + 10.0 * wrong_identity_accept
+            choices.append((objective, -float(threshold), -float(margin_threshold),
+                            reject_or_wrong, outsider_accept))
+    score, neg_t, neg_m, false_reject_or_wrong, far = min(choices)
+    threshold, margin_threshold = -neg_t, -neg_m
     output = Path(output)
     output.parent.mkdir(parents=True, exist_ok=True)
     payload = {
         "threshold": threshold,
+        "margin_threshold": margin_threshold,
         "checkpoint_sha256": sha256(checkpoint),
         "templates_sha256": sha256(templates),
         "validation_known": len(known),
@@ -115,34 +125,39 @@ def load_threshold(checkpoint, templates, threshold_path):
     if payload["templates_sha256"] != sha256(templates):
         raise ValueError("Threshold uses different templates")
     value = float(payload["threshold"])
-    if not -1.0 <= value <= 1.0:
-        raise ValueError("Threshold outside cosine range [-1, 1]")
-    return value
+    margin = float(payload["margin_threshold"])
+    if not -1.0 <= value <= 1.0 or not 0.0 <= margin <= 2.0:
+        raise ValueError("Invalid score/margin threshold")
+    return value, margin
 
 
 @torch.no_grad()
 def verify_image(image_path, checkpoint, templates, threshold_path):
-    threshold = load_threshold(checkpoint, templates, threshold_path)
+    threshold, margin_threshold = load_threshold(checkpoint, templates, threshold_path)
     centers = load_templates(checkpoint, templates)
     model = load_trained(checkpoint)
     array = normalize_roi(load_roi(image_path))
     x = torch.from_numpy(array[None, None])
     z, _ = model(x)
     index, best, scores = score_vectors(z.numpy(), centers)
+    gap = float(margins(scores)[0])
+    accepted = bool(best[0] >= threshold and gap >= margin_threshold)
     winner = int(index[0])
     return {
-        "person": PERSON_IDS[winner] if best[0] >= threshold else "unknown",
+        "person": PERSON_IDS[winner] if accepted else "unknown",
         "candidate": PERSON_IDS[winner],
-        "accepted": bool(best[0] >= threshold),
+        "accepted": accepted,
         "score": float(best[0]),
+        "margin": gap,
         "threshold": float(threshold),
+        "margin_threshold": float(margin_threshold),
         "scores": {name: float(score) for name, score in zip(PERSON_IDS, scores[0])}
     }
 
 
 def evaluate_test(checkpoint, templates, threshold_path, data_root):
     """Uses session_03 only. Do not tune threshold based on these results."""
-    threshold = load_threshold(checkpoint, templates, threshold_path)
+    threshold, margin_threshold = load_threshold(checkpoint, templates, threshold_path)
     model = load_trained(checkpoint)
     centers = load_templates(checkpoint, templates)
     known = samples_for_split(data_root, "test")
@@ -150,18 +165,20 @@ def evaluate_test(checkpoint, templates, threshold_path, data_root):
     if not known or not outsider:
         raise ValueError("Test needs session_03 images of members AND outsiders")
     z, y = embeddings_for(model, known)
-    index, best, _ = score_vectors(z, centers)
-    accepted = best >= threshold
+    index, best, scores = score_vectors(z, centers)
+    accepted = (best >= threshold) & (margins(scores) >= margin_threshold)
     uz, _ = embeddings_for(model, outsider)
-    _, unknown_best, _ = score_vectors(uz, centers)
+    _, unknown_best, unknown_scores = score_vectors(uz, centers)
+    unknown_accepted = (unknown_best >= threshold) & (margins(unknown_scores) >= margin_threshold)
     report = {
         "known_test_images": int(len(y)),
         "unknown_test_images": int(len(unknown_best)),
         "threshold": threshold,
+        "margin_threshold": margin_threshold,
         "correct_id_and_accepted_rate": float(np.mean(accepted & (index == y))),
         "false_reject_rate_FRR": float(np.mean(~accepted)),
         "wrong_identity_accepted_rate": float(np.mean(accepted & (index != y))),
-        "outsider_false_accept_rate_FAR": float(np.mean(unknown_best >= threshold)),
+        "outsider_false_accept_rate_FAR": float(np.mean(unknown_accepted)),
         "note": "Small test sets give uncertain FAR/FRR estimates."
     }
     return report
