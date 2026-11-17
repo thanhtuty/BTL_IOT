@@ -22,8 +22,10 @@ class PalmV2Tests(unittest.TestCase):
 
     def test_gabor_and_roi(self):
         self.assertEqual(tuple(make_gabor_bank().shape), (4, 1, 7, 7))
-        roi = np.full((64, 64), 127, dtype=np.uint8)
+        roi = np.tile(np.arange(1, 65, dtype=np.uint8), (64, 1))
         self.assertTrue(np.isfinite(normalize_roi(roi)).all())
+        with self.assertRaises(ValueError):
+            normalize_roi(np.full((64, 64), 127, dtype=np.uint8))
         with self.assertRaises(ValueError):
             normalize_roi(np.zeros((64, 64), dtype=np.uint8))
 
