@@ -1,4 +1,4 @@
-# PalmLock-AI — Starter Kit nhận diện lòng bàn tay (PC)
+# 🧪 Nhánh thử nghiệm V2 — mô hình nhỏ chạy trên ESP32\n\nXem **[palm_v2/README.md](palm_v2/README.md)** để huấn luyện 4 người, hướng dẫn dataset và triển khai thử trên ESP32. Nội dung dưới đây là hướng dẫn **V1** giữ lại để đối chiếu.\n\n---\n\n# PalmLock-AI — Starter Kit nhận diện lòng bàn tay (PC)
 
 **Nguồn:** Trích mã kiến trúc/tiền xử lý trong `palmbridge.ipynb` của người dùng (cell 2). Phần CLI, đăng ký, so sánh, database được viết thêm phục vụ nhóm 4 người.
 
