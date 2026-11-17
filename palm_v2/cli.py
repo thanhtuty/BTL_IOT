@@ -14,6 +14,11 @@ def main():
     parser.add_argument("--thresholds", default="palm_v2/artifacts/thresholds.json")
     sub = parser.add_subparsers(dest="action", required=True)
     sub.add_parser("inspect-data", help="Count session photos for each person and unknown")
+    crop_parser = sub.add_parser("prepare-roi", help="Optional offline crop from full-hand photos")
+    crop_parser.add_argument("--source", default="photos_raw_v2")
+    crop_parser.add_argument("--destination", default="dataset_v2")
+    crop_parser.add_argument("--landmarker", default="weights/hand_landmarker.task")
+    crop_parser.add_argument("--overwrite", action="store_true")
     train_parser = sub.add_parser("train", help="Train the 4-class tiny model")
     train_parser.add_argument("--epochs", type=int, default=40)
     train_parser.add_argument("--batch-size", type=int, default=16)
@@ -30,6 +35,9 @@ def main():
 
     if args.action == "inspect-data":
         result = dataset_counts(args.data)
+    elif args.action == "prepare-roi":
+        from .prepare_roi import prepare_full_hand
+        result = prepare_full_hand(args.source, args.destination, args.landmarker, args.overwrite)
     elif args.action == "train":
         from .training import train
         result = train(args.data, args.checkpoint, epochs=args.epochs,

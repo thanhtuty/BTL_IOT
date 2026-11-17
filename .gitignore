@@ -18,3 +18,7 @@ roi_previews/*
 *.pth
 *.onnx
 *.espdl\n\n# V2: ignore private biometric images/templates and on-device generated coefficients\ndataset_v2/**/*\n!dataset_v2/**/\n!dataset_v2/**/.gitkeep\npalm_v2/artifacts/\npalm_v2/firmware/generated_palm_v2.h\n
+# V2 raw full-hand captures are private too
+photos_raw_v2/**/*
+!photos_raw_v2/**/
+!photos_raw_v2/**/.gitkeep

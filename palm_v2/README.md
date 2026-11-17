@@ -46,6 +46,19 @@ dataset_v2/
 
 **Ảnh và template là dữ liệu sinh trắc học nhạy cảm**: đã được cấu hình gitignore để tránh commit nhầm; nên lưu bản sao riêng và mã hóa nếu cần. `*.pt`, mẫu centroid, header xuất từ mô hình đều không được commit công khai.
 
+### Nếu bạn chụp ảnh nguyên bàn tay bằng điện thoại
+
+Có thể lưu ảnh **gốc** ở `photos_raw_v2/person_01/session_01/` (các người/buổi tương tự), rồi chạy bước cắt lòng bàn tay **offline** (trên máy tính) vào `dataset_v2/`:
+
+```powershell
+pip install mediapipe
+# Đầu tiên đặt MediaPipe hand_landmarker.task vào weights/hand_landmarker.task
+python -m palm_v2.cli prepare-roi
+python -m palm_v2.cli inspect-data
+```
+
+Tải file landmark từ [Google MediaPipe](https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/latest/hand_landmarker.task). Chương trình tái sử dụng `roi.py` V1, không sửa ảnh gốc và báo ảnh không dò được. **Lưu ý:** bước MediaPipe chỉ chạy trên PC. Firmware ESP32 V2 hiện nhận ROI đã cắt sẵn và **không chạy MediaPipe**; phải đảm bảo ROI trích ra từ ESP32 tại vị trí chụp thực tế giống ROI training, nếu không kết quả có thể giảm mạnh. Phương án đáng tin cậy nhất vẫn là chụp ROI trực tiếp từ ESP32 hoặc dùng khung cố định khi chụp.
+
 ## 3. Cài đặt (Windows PowerShell)
 
 Từ thư mục gốc `BTL_IOT`:
